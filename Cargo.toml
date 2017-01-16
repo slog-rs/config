@@ -1,0 +1,22 @@
+[package]
+name = "slog-config"
+version = "0.1.0"
+authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
+
+description = "Builds slog `Drain` from text config (eg. file)"
+keywords = ["slog", "log", "logging", "config", "file"]
+license = "MPL-2.0"
+documentation = "https://docs.rs/slog-config"
+homepage = "https://github.com/slog-rs/slog"
+repository = "https://github.com/slog-rs/config"
+readme = "README.md"
+
+[dependencies]
+toml = { version = "0.2.1", features = ["serde"], default-features = false }
+serde = "0.8"
+serde_derive = "0.8"
+
+slog = "1.4"
+slog-stream = "*"
+slog-json = "*"
+slog-term = "*"
