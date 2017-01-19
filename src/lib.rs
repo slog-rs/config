@@ -11,6 +11,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
+#[macro_use]
 extern crate slog;
 extern crate slog_stream;
 extern crate slog_json;
@@ -20,21 +21,25 @@ use std::result::Result;
 use std::fs::OpenOptions;
 
 /// Type of Drain returned by this library
-pub type Drain = Box<slog::Drain<Error=Box<std::error::Error>>>;
+pub type Drain = Box<slog::Drain<Error=Box<std::error::Error>>+Sync+Send>;
 
+/// Configuration serialization format datastructeres
 pub mod config {
     use std::collections::BTreeMap;
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Debug)]
+    /// Logging configuration
     pub struct Config {
+        /// Outputs
         pub output : BTreeMap<String, Output>,
     }
 
-    #[derive(Deserialize)]
-    pub struct Output {
-        pub values : BTreeMap<String, String>,
-    }
+    //#[derive(Deserialize, Debug)]
+    /// Output configuration
+    pub type Output = BTreeMap<String, String>;
 }
+
+include!("_file.rs");
 
 /// `Drain` type handler
 ///
@@ -62,15 +67,13 @@ pub trait DrainFactory {
 ///
 /// Note that adding a `Factory` to `ALL_FACTORIES` is not considering a breaking
 /// change in SemVer.
-pub static ALL_FACTORIES : [Box<DrainFactory+Sync>; 0] = [];
-
 pub fn all_factories() -> Vec<Box<DrainFactory>> {
-    vec![]
+    vec![Box::new(FileDrainFactory)]
 }
 
 /// Produce a `Drain` described by the the given `config_str`
 ///
-/// `ALL_FACTORIES` will be used.
+/// `all_factories` will be used.
 pub fn from_config(config_str : &str) -> Result<Drain, String> {
     from_config_with(config_str,  &all_factories())
 }
@@ -118,51 +121,23 @@ pub fn from_config_with(config_str : &str, factories : &[Box<DrainFactory>]) -> 
     let mut sub_drains = vec![];
 
     for output in &config.output {
+        let mut drain_from_factory = None;
         for factory in factories {
             match factory.from_config(output.1)? {
                 Some(drain) => {
-                    sub_drains.push(drain);
+                    drain_from_factory = Some(drain);
                     break;
                 },
                 None => {},
             }
         }
+        let drain_from_factory = drain_from_factory.ok_or(format!("no backend implementing output {} found", output.0))?;
+        sub_drains.push(drain_from_factory);
     }
 
     Ok(Box::new(DuplicateMultiple{drains: sub_drains}))
 }
 
-struct FileDrainFactory;
-impl DrainFactory for FileDrainFactory {
-    fn from_config(&self, config : &config::Output) -> Result<Option<Drain>, String> {
-        let type_ = config.values.get("type").ok_or("output type missing")?;
-
-
-        if type_ != "file" {
-            return Ok(None)
-        }
-        let path = config.values.get("path").ok_or("file path missing")?;
-        let format_str = config.values.get("format").ok_or("format missing")?;
-
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(true)
-            .open(path).unwrap();
-
-        let format = match format_str.as_str() {
-            "json" => slog_json::Format::new().build(),
-            _ => return Err(format!("unkown file format: {}", format_str)),
-        };
-        let drain = slog_stream::stream(file, format);
-
-        Ok(Some(Box::new(BoxErrorDrain(drain))))
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-    }
 }

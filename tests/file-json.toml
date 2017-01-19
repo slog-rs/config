@@ -1,0 +1,5 @@
+[output.file-1]
+type = "file"
+foo = "bar"
+path = "target/file-json.log"
+format = "json"
