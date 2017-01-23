@@ -1,0 +1,5 @@
+[output.stdout]
+type = "term"
+format = "compact"
+use_stdout = "true"
+
