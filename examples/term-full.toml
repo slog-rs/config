@@ -1,0 +1,4 @@
+[output.stderr]
+type = "term"
+format = "full"
+timestamp = "utc"

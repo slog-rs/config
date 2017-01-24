@@ -12,6 +12,7 @@ repository = "https://github.com/slog-rs/config"
 readme = "README.md"
 
 [dependencies]
+isatty = "0.1.3"
 toml = { version = "0.2.1", features = ["serde"], default-features = false }
 serde = "0.8"
 serde_derive = "0.8"

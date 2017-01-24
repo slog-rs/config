@@ -6,6 +6,7 @@
 #![feature(custom_derive)]
 #![warn(missing_docs)]
 
+extern crate isatty;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -40,6 +41,7 @@ pub mod config {
 }
 
 include!("_file.rs");
+include!("_term.rs");
 
 /// `Drain` type handler
 ///
@@ -68,7 +70,7 @@ pub trait DrainFactory {
 /// Note that adding a `Factory` to `ALL_FACTORIES` is not considering a breaking
 /// change in SemVer.
 pub fn all_factories() -> Vec<Box<DrainFactory>> {
-    vec![Box::new(FileDrainFactory)]
+    vec![Box::new(FileDrainFactory), Box::new(TermDrainFactory)]
 }
 
 /// Produce a `Drain` described by the the given `config_str`
