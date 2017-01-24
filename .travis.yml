@@ -1,8 +1,8 @@
 language: rust
 rust:
-  - stable
-  - 1.14.0
-  - beta
+# - stable
+# - 1.14.0
+# - beta
   - nightly
 
 before_install:
