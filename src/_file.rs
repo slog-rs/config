@@ -21,12 +21,14 @@ impl DrainFactory for FileDrainFactory {
             .append(true)
             .open(path).unwrap();
 
-        let format = match format_str.as_str() {
-            "json" => slog_json::Format::new().build(),
+        let drain = match format_str.as_str() {
+            "json" => BoxErrorDrain(
+                Mutex::new(
+                slog_json::Json::new(file).build()
+                )),
             _ => return Err(format!("unkown file format: {}", format_str)),
         };
-        let drain = slog_stream::stream(file, format);
 
-        Ok(Some(Box::new(BoxErrorDrain(drain))))
+        Ok(Some(Box::new(drain)))
     }
 }

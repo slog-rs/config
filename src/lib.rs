@@ -12,17 +12,25 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
-#[macro_use]
 extern crate slog;
-extern crate slog_stream;
 extern crate slog_json;
 extern crate slog_term;
 
 use std::result::Result;
 use std::fs::OpenOptions;
+use std::sync::Mutex;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
 /// Type of Drain returned by this library
-pub type Drain = Box<slog::Drain<Error=Box<std::error::Error>>+Sync+Send>;
+pub type Drain = Box<SendSyncDrain<Ok=(), Err=Box<std::error::Error>>>;
+
+/// Bounds of `Drain` returned by this crate
+pub trait SendSyncDrain: slog::Drain + Send + Sync + RefUnwindSafe + UnwindSafe {}
+
+impl<T> SendSyncDrain for T
+    where T: slog::Drain + Send + Sync + RefUnwindSafe + UnwindSafe + ?Sized
+{
+}
 
 /// Configuration serialization format datastructeres
 pub mod config {
@@ -87,9 +95,10 @@ struct DuplicateMultiple {
 
 impl slog::Drain for DuplicateMultiple {
 
-    type Error = Box<std::error::Error>;
+    type Ok = ();
+    type Err = Box<std::error::Error>;
 
-    fn log(&self, info: &slog::Record, kv : &slog::OwnedKeyValueList) -> std::result::Result<(), Self::Error> {
+    fn log(&self, info: &slog::Record, kv : &slog::OwnedKVList) -> std::result::Result<(), Self::Err> {
         for d in &self.drains {
             d.log(info, kv)?
         }
@@ -102,11 +111,12 @@ struct BoxErrorDrain<D>(D)
 where D : slog::Drain;
 
 impl<D, E> slog::Drain for BoxErrorDrain<D>
-where D : slog::Drain<Error=E>,
+where D : slog::Drain<Ok=(), Err=E>,
       E : std::error::Error+'static {
-    type Error = Box<std::error::Error>;
+          type Ok =();
+    type Err = Box<std::error::Error>;
 
-    fn log(&self, info: &slog::Record, kv : &slog::OwnedKeyValueList) -> std::result::Result<(), Self::Error> {
+    fn log(&self, info: &slog::Record, kv : &slog::OwnedKVList) -> std::result::Result<(), Self::Err> {
         self.0.log(info, kv).map_err(|e| Box::new(e) as  Box<std::error::Error>)
     }
 }
@@ -118,7 +128,8 @@ where D : slog::Drain<Error=E>,
 /// of `DrainFactory`-ies to querry.
 pub fn from_config_with(config_str : &str, factories : &[Box<DrainFactory>]) -> Result<Drain, String> {
 
-    let config : config::Config = toml::decode_str(config_str).ok_or("couldn't decode configuration")?;
+    let config : config::Config = toml::from_str(config_str)
+        .map_err(|e| format!("couldn't decode configuration: {}", e))?;
 
     let mut sub_drains = vec![];
 

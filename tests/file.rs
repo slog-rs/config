@@ -4,7 +4,7 @@ extern crate slog_config;
 
 use std::{fs, io, thread, time};
 use std::io::Read;
-use slog::{DrainExt, Logger};
+use slog::{Drain, Logger};
 
 use std::path::Path;
 
