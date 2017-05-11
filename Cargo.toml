@@ -1,6 +1,6 @@
 [package]
 name = "slog-config"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
 
 description = "Builds slog `Drain` from text config (eg. file)"
@@ -13,10 +13,10 @@ readme = "README.md"
 
 [dependencies]
 isatty = "0.1.3"
-toml = { version = "0.3", features = ["serde"], default-features = false }
-serde = "0.9"
-serde_derive = "0.9"
+toml = { version = "0.4", features = ["serde"], default-features = false }
+serde = "1"
+serde_derive = "1"
 
-slog = "~2.0.0-2"
-slog-json = "~2.0.0-2"
-slog-term = "~2.0.0-2"
+slog = "2"
+slog-json = "2"
+slog-term = "2"
